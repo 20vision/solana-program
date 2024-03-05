@@ -1,0 +1,1 @@
+/Users/Alex/Desktop/20Vision/Programming/solana-program/new/utility_staking/target/sbf-solana-solana/release/utility_staking.so: /Users/Alex/Desktop/20Vision/Programming/solana-program/new/utility_staking/src/lib.rs
