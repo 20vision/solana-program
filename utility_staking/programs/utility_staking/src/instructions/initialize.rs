@@ -10,7 +10,7 @@ use {
 };
 
 #[derive(Accounts)]
-#[instruction(seed : u8)]
+#[instruction(seed: String)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -19,12 +19,13 @@ pub struct Initialize<'info> {
     // Same PDA as address of the account and mint/freeze authority
     #[account(
         init,
-        seeds = [seed.to_le_bytes().as_ref()],
+        seeds = [seed.as_bytes()],
         bump,
         payer = payer,
         mint::decimals = 9,
         mint::authority = mint_account.key(),
-        mint::freeze_authority = None,
+        mint::freeze_authority = mint_account.key(),
+
     )]
     pub mint_account: Account<'info, Mint>,
 
@@ -43,7 +44,7 @@ pub struct Initialize<'info> {
 
 pub fn initialize(
     ctx: Context<Initialize>,
-    seed: u8,
+    seed: String,
     token_name: String,
     token_symbol: String,
     token_uri: String,
@@ -51,7 +52,7 @@ pub fn initialize(
     msg!("Creating metadata account");
 
     // PDA signer seeds
-    let signer_seeds: &[&[&[u8]]] = &[&[b"mint_account", &[*ctx.bumps.get("mint_account").unwrap()]]];
+    let signer_seeds: &[&[&[u8]]] = &[&[seed.as_bytes(), &[*ctx.bumps.get("mint_account").unwrap()]]];
 
     // Cross Program Invocation (CPI) signed by PDA
     // Invoking the create_metadata_account_v3 instruction on the token metadata program

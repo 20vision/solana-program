@@ -16,7 +16,6 @@ describe("NFT Minter", () => {
   const program = anchor.workspace.UtilityStaking as anchor.Program<UtilityStaking>;
 
   const seed = uniqid()
-  console.log(seed)
 
   // Derive the PDA to use as mint account address.
   // This same PDA is also used as the mint authority.
@@ -57,6 +56,35 @@ describe("NFT Minter", () => {
 
     console.log("Success!");
     console.log(`   Mint Address: ${mintPDA}`);
+    console.log(`   Transaction Signature: ${transactionSignature}`);
+  });
+
+  it("Mint 1 Token!", async () => {
+    // Derive the associated token address account for the mint and payer.
+    const associatedTokenAccountAddress = getAssociatedTokenAddressSync(
+      mintPDA,
+      payer.publicKey
+    );
+
+    // Amount of tokens to mint.
+    const amount = new anchor.BN(100);
+
+    const transactionSignature = await program.methods
+      .mintToken(seed,amount)
+      .accounts({
+        payer: payer.publicKey,
+        mintAccount: mintPDA,
+        associatedTokenAccount: associatedTokenAccountAddress,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    console.log("Success!");
+    console.log(
+      `   Associated Token Account Address: ${associatedTokenAccountAddress}`
+    );
     console.log(`   Transaction Signature: ${transactionSignature}`);
   });
 });
