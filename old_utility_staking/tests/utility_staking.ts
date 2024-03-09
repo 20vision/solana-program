@@ -7,7 +7,6 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import uniqid from 'uniqid';
 
 describe("NFT Minter", () => {
   const provider = anchor.AnchorProvider.env();
@@ -15,13 +14,10 @@ describe("NFT Minter", () => {
   const payer = provider.wallet as anchor.Wallet;
   const program = anchor.workspace.UtilityStaking as anchor.Program<UtilityStaking>;
 
-  const seed = uniqid()
-  console.log(seed)
-
   // Derive the PDA to use as mint account address.
   // This same PDA is also used as the mint authority.
   const [mintPDA] = PublicKey.findProgramAddressSync(
-    [Buffer.from(seed)],
+    [Buffer.from("mint")],
     program.programId
   );
 
@@ -43,7 +39,7 @@ describe("NFT Minter", () => {
     );
 
     const transactionSignature = await program.methods
-      .initialize(seed, metadata.name, metadata.symbol, metadata.uri)
+      .initialize(metadata.name, metadata.symbol, metadata.uri)
       .accounts({
         payer: payer.publicKey,
         mintAccount: mintPDA,
