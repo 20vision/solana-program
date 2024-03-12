@@ -12,6 +12,8 @@ use {
 use fixed::types::I64F64;
 use fixed_sqrt::FixedSqrt;
 
+use crate::{state::DexInfo};
+
 #[derive(Accounts)]
 #[instruction(seed: String)]
 pub struct Initialize<'info> {
@@ -39,11 +41,13 @@ pub struct Initialize<'info> {
     pub collateral_account: SystemAccount<'info>,
 
     #[account(
-        mut,
-        seeds = [b"dex_info", mint_account.key().as_ref()],
+        init,
+        payer = payer,
+        space = DexInfo::LEN,
+        seeds = [b"constraint_accounts", mint_account.key().as_ref()],
         bump
     )]
-    pub dex_info_account: SystemAccount<'info>,
+    pub dex_info_account: Account<'info, DexInfo>,
 
     /// CHECK: Address validated using constraint
     #[account(
