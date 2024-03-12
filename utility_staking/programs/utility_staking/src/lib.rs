@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 use instructions::*;
 pub mod instructions;
 
-declare_id!("49KPpNGzdqZ1ntT7kEq1jR2x1oYKJ5y3sQG9LQJTZ6Yu");
+declare_id!("BxJjRdvuNdYVnzriPYNEu3gzfeV2SiZPcuXUkLRdfZKX");
 
 #[program]
 pub mod utility_staking {
@@ -18,6 +18,12 @@ pub mod utility_staking {
         token_uri: String,
     ) -> Result<()> {
         initialize::initialize(ctx, seed, token_name, token_symbol, token_uri)
+    }
+
+    pub fn buy_request(
+        ctx: Context<Initialize>,
+    ) -> Result<()> {
+        escrow::buy_request(ctx, amount_in)
     }
 
     pub fn mint_token(ctx: Context<MintToken>, seed: String, amount: u64) -> Result<()> {

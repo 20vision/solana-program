@@ -24,6 +24,11 @@ describe("NFT Minter", () => {
     program.programId
   );
 
+  const [collateralPDA] = PublicKey.findProgramAddressSync(
+    [mintPDA.toBuffer()],
+    program.programId
+  );
+
   const metadata = {
     name: "20Vision",
     symbol: "/20vision",
@@ -46,6 +51,7 @@ describe("NFT Minter", () => {
       .accounts({
         payer: payer.publicKey,
         mintAccount: mintPDA,
+        collateralAccount: collateralPDA,
         metadataAccount: metadataAddress,
         tokenProgram: TOKEN_PROGRAM_ID,
         tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
