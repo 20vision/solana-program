@@ -2,13 +2,24 @@ use anchor_lang::prelude::*;
 
 #[account]
 #[derive(Default)]
-pub struct DexInfo {
-    /// Account that has a bunch of sub accounts that have to be signers for "constrained functions"
-    pub constraint_list_account: Pubkey,
-    /// Account that has a bunch of sub accounts that have to be signers for "admin functions"
-    pub multisig_list_account: Pubkey
+pub struct ConstraintFunctionSignerList {
+    /// Account that has a bunch of sub accounts that have to be signers for "constraint functions"
+    pub constraint_account_id: Pubkey,
+    // ... Extendable, in "AddSigner" Function. Probably using the realloc = <space> function from anchor
 }
 
-impl DexInfo {
-    pub const LEN: usize = 8 + 32 + 32;
+impl ConstraintFunctionSignerList {
+    pub const LEN: usize = 8 + 32;
+}
+
+#[account]
+#[derive(Default)]
+pub struct MultiSigAdminList {
+    /// Account that has a bunch of sub accounts that have to be signers for "constraint functions"
+    pub admin_account_id: Pubkey,
+    // ... Extendable, in "AddSigner" Function. Probably using the realloc = <space> function from anchor
+}
+
+impl MultiSigAdminList {
+    pub const LEN: usize = 8 + 32;
 }

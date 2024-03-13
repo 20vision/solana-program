@@ -3,8 +3,10 @@
 use anchor_lang::prelude::*;
 use instructions::*;
 pub mod instructions;
+mod state;
+// mod errors;
 
-declare_id!("BxJjRdvuNdYVnzriPYNEu3gzfeV2SiZPcuXUkLRdfZKX");
+declare_id!("FYJN5mcoNEAisD72LWgtcLxBAeJhD4n3DQSyUHtHpptN");
 
 #[program]
 pub mod utility_staking {
@@ -13,17 +15,21 @@ pub mod utility_staking {
     pub fn initialize(
         ctx: Context<Initialize>,
         seed: String,
+        constraint_signer: Pubkey,
+        admin_signer: Pubkey,
         token_name: String,
         token_symbol: String,
         token_uri: String,
     ) -> Result<()> {
-        initialize::initialize(ctx, seed, token_name, token_symbol, token_uri)
-    }
-
-    pub fn buy_request(
-        ctx: Context<Initialize>,
-    ) -> Result<()> {
-        escrow::buy_request(ctx, amount_in)
+        initialize::initialize(
+            ctx,
+            seed,
+            constraint_signer,
+            admin_signer,
+            token_name,
+            token_symbol,
+            token_uri,
+        )
     }
 
     pub fn mint_token(ctx: Context<MintToken>, seed: String, amount: u64) -> Result<()> {

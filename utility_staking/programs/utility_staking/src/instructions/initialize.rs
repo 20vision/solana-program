@@ -12,10 +12,14 @@ use {
 use fixed::types::I64F64;
 use fixed_sqrt::FixedSqrt;
 
-use crate::{state::DexInfo};
+use crate::state::{
+    ConstraintFunctionSignerList,
+    MultiSigAdminList
+};
+
 
 #[derive(Accounts)]
-#[instruction(seed: String)]
+#[instruction(seed: String, constraint_signer: Pubkey, admin_signer: Pubkey)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -40,14 +44,25 @@ pub struct Initialize<'info> {
     )]
     pub collateral_account: SystemAccount<'info>,
 
+    // Some functions like the buy function can have constraints like the seller having to sign the buy request.
     #[account(
         init,
         payer = payer,
-        space = DexInfo::LEN,
-        seeds = [b"constraint_accounts", mint_account.key().as_ref()],
+        space = ConstraintFunctionSignerList::LEN,
+        seeds = [b"constraint_signer_list", mint_account.key().as_ref()],
         bump
     )]
-    pub dex_info_account: Account<'info, DexInfo>,
+    pub constraint_signer_list_account: Account<'info, ConstraintFunctionSignerList>,
+
+    // Some functions like the withdrawal function can have constraints like the admins having to sign the buy request.
+    #[account(
+        init,
+        payer = payer,
+        space = MultiSigAdminList::LEN,
+        seeds = [b"multi_sig_admin_list", mint_account.key().as_ref()],
+        bump
+    )]
+    pub multi_sig_admin_list_account: Account<'info, MultiSigAdminList>,
 
     /// CHECK: Address validated using constraint
     #[account(
@@ -65,6 +80,8 @@ pub struct Initialize<'info> {
 pub fn initialize(
     ctx: Context<Initialize>,
     seed: String,
+    constraint_signer: Pubkey,
+    admin_signer: Pubkey,
     token_name: String,
     token_symbol: String,
     token_uri: String,
@@ -106,6 +123,13 @@ pub fn initialize(
     // Initial Lamports rent exemption for collateral account = 890880
     let min_collateral = 890880;
 
+
+    let constraint_signer_list_account = &mut ctx.accounts.constraint_signer_list_account;
+    constraint_signer_list_account.constraint_account_id = constraint_signer;
+
+    let multi_sig_admin_list_account = &mut ctx.accounts.multi_sig_admin_list_account;
+    multi_sig_admin_list_account.admin_account_id = admin_signer;
+
     // I64F64::from_num(min_collateral)
     //     .checked_div(
     //         I64F64::from_num(51)
@@ -116,7 +140,7 @@ pub fn initialize(
     //     .sqrt()
     //     .to_num::<u64>();
 
-    msg!("Initial: {}", min_token);
+    // msg!("Initial: {}", min_token);
 
     system_program::transfer(
         CpiContext::new(

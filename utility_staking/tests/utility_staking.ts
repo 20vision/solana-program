@@ -25,7 +25,17 @@ describe("NFT Minter", () => {
   );
 
   const [collateralPDA] = PublicKey.findProgramAddressSync(
-    [mintPDA.toBuffer()],
+    [Buffer.from("collateral"),mintPDA.toBuffer()],
+    program.programId
+  );
+
+  const [constraint_signer_list] = PublicKey.findProgramAddressSync(
+    [Buffer.from("constraint_signer_list"),mintPDA.toBuffer()],
+    program.programId
+  );
+
+  const [multi_sig_admin_list] = PublicKey.findProgramAddressSync(
+    [Buffer.from("multi_sig_admin_list"),mintPDA.toBuffer()],
     program.programId
   );
 
@@ -46,12 +56,22 @@ describe("NFT Minter", () => {
       TOKEN_METADATA_PROGRAM_ID
     );
 
+    // ctx: Context<Initialize>,
+    // seed: String,
+    // constraint_signer: Pubkey,
+    // admin_signer: Pubkey,
+    // token_name: String,
+    // token_symbol: String,
+    // token_uri: String,
+
     const transactionSignature = await program.methods
-      .initialize(seed, metadata.name, metadata.symbol, metadata.uri)
+      .initialize(seed,payer.publicKey,payer.publicKey, metadata.name, metadata.symbol, metadata.uri)
       .accounts({
         payer: payer.publicKey,
         mintAccount: mintPDA,
         collateralAccount: collateralPDA,
+        constraintSigner: constraint_signer_list,
+        multiSigAdminList: multi_sig_admin_list,
         metadataAccount: metadataAddress,
         tokenProgram: TOKEN_PROGRAM_ID,
         tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
