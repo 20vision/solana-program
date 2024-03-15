@@ -10,13 +10,19 @@ import {
 import uniqid from 'uniqid';
 import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 
-describe("NFT Minter", () => {
+describe("Utility Staking", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const payer = provider.wallet as anchor.Wallet;
   const program = anchor.workspace.UtilityStaking as anchor.Program<UtilityStaking>;
 
+  const constraintSigner = anchor.web3.Keypair.generate();
+  const multiSigAdmin = anchor.web3.Keypair.generate();
+
   const mintAccount = anchor.web3.Keypair.generate();
+  let constraint_id = {
+    publicKey: new PublicKey("dd2ZMQZWgmcBveBRXRn4EFG8bh947ujRnxa9EnNMVCx")
+  }
 
   const [constraint_signer_list] = PublicKey.findProgramAddressSync(
     [Buffer.from("constraint_signer_list"),mintAccount.publicKey.toBuffer()],
@@ -39,7 +45,7 @@ describe("NFT Minter", () => {
     // token_uri: String,
 
     const transactionSignature = await program.methods
-      .initialize(payer.publicKey,payer.publicKey)
+      .initialize(constraintSigner.publicKey,multiSigAdmin.publicKey)
       .accounts({
         payer: payer.publicKey,
         mintAccount: mintAccount.publicKey,
@@ -77,15 +83,58 @@ describe("NFT Minter", () => {
     const transactionSignature = await program.methods
       .buy(amount_in,min_amount_out)
       .accounts({
-        payer: payer.publicKey,
+        buyer: payer.publicKey,
         mintAccount: mintAccount.publicKey,
         associatedUtilityStakeAccount: associatedUtilityStakeAccount,
         constraintSignerListAccount: constraint_signer_list,
         systemProgram: SystemProgram.programId,
       })
+      .remainingAccounts([{
+        pubkey: constraintSigner.publicKey,
+        isWritable: false,
+        isSigner: true
+      }])
+      .signers([constraintSigner])
       .rpc();
 
-    console.log("Success!");
+    const userAccount = await program.account.multiSigAdminList.fetch(
+      associatedUtilityStakeAccount
+    )
+
+    console.log(`Success ! ${userAccount}`);
+    console.log(
+      `   Associated Token Account Address: ${associatedUtilityStakeAccount}`
+    );
+    console.log(`   Transaction Signature: ${transactionSignature}`);
+  });
+
+  it("Sell 1!", async () => {
+    // Derive the associated token address account for the mint and payer.
+    const [associatedUtilityStakeAccount] = PublicKey.findProgramAddressSync([
+      mintAccount.publicKey.toBuffer(),
+      payer.publicKey.toBuffer()
+    ],
+    program.programId);
+
+    // Amount of tokens to mint.
+    const amount_in = new anchor.BN(100);
+    const min_amount_out = new anchor.BN(100);
+
+    const transactionSignature = await program.methods
+      .sell(amount_in,min_amount_out)
+      .accounts({
+        buyer: payer.publicKey,
+        mintAccount: mintAccount.publicKey,
+        associatedUtilityStakeAccount: associatedUtilityStakeAccount,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    const userAccount = await program.account.multiSigAdminList.fetch(
+      associatedUtilityStakeAccount
+    )
+
+      console.log(`Success ! ${userAccount}`);
     console.log(
       `   Associated Token Account Address: ${associatedUtilityStakeAccount}`
     );

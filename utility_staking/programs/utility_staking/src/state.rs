@@ -43,7 +43,7 @@ impl UtilityStakeMint {
 pub struct UtilityStakeAccount {
     /// Account that has a bunch of sub accounts that have to be signers for "constraint functions"
     pub mint: Pubkey,
-    pub owner: Pubkey,
+    pub hodler: Pubkey,
     pub amount: u64
 }
 

@@ -10,22 +10,22 @@ use fixed_sqrt::FixedSqrt;
 use crate::state::{
     ConstraintFunctionSignerList,
     MultiSigAdminList,
-    UtilityStakeMint
+    UtilityStakeMint,
 };
 
 
 #[derive(Accounts)]
-#[instruction(constraint_signer: Pubkey, admin_signer: Pubkey)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
     #[account(
         init,
+        signer,
         payer = payer,
         space = 8 + UtilityStakeMint::LEN
     )]
-    pub mint_account: Account<'info, UtilityStakeMint>,
+    pub mint_account: Box<Account<'info, UtilityStakeMint>>,
 
     // Some functions like the buy function can have constraints like the seller having to sign the buy request.
     #[account(
@@ -35,7 +35,7 @@ pub struct Initialize<'info> {
         seeds = [b"constraint_signer_list", mint_account.key().as_ref()],
         bump
     )]
-    pub constraint_signer_list_account: Account<'info, ConstraintFunctionSignerList>,
+    pub constraint_signer_list_account: Box<Account<'info, ConstraintFunctionSignerList>>,
 
     // Some functions like the withdrawal function can have constraints like the admins having to sign the buy request.
     #[account(
@@ -45,7 +45,7 @@ pub struct Initialize<'info> {
         seeds = [b"multi_sig_admin_list", mint_account.key().as_ref()],
         bump
     )]
-    pub multi_sig_admin_list_account: Account<'info, MultiSigAdminList>,
+    pub multi_sig_admin_list_account: Box<Account<'info, MultiSigAdminList>>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -79,12 +79,12 @@ pub fn initialize(
 
     let constraint_signer_list_account = &mut ctx.accounts.constraint_signer_list_account;
     constraint_signer_list_account.constraint_account_ids = vec![
-        constraint_signer.key(),
+        constraint_signer,
     ];
 
     let multi_sig_admin_list_account = &mut ctx.accounts.multi_sig_admin_list_account;
     multi_sig_admin_list_account.admin_account_ids = vec![
-        admin_signer.key(),
+        admin_signer,
     ];
 
     system_program::transfer(
