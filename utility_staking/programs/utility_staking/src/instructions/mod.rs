@@ -1,5 +1,5 @@
 pub mod initialize;
-pub mod mint;
+pub mod buy;
 
 pub use initialize::*;
-pub use mint::*;
+pub use buy::*;

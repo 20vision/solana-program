@@ -1,13 +1,14 @@
 import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import * as anchor from "@coral-xyz/anchor";
 import { UtilityStaking } from "../target/types/utility_staking";
-import { PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram } from "@solana/web3.js";
+import { Keypair,PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram } from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import uniqid from 'uniqid';
+import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 
 describe("NFT Minter", () => {
   const provider = anchor.AnchorProvider.env();
@@ -15,46 +16,19 @@ describe("NFT Minter", () => {
   const payer = provider.wallet as anchor.Wallet;
   const program = anchor.workspace.UtilityStaking as anchor.Program<UtilityStaking>;
 
-  const seed = uniqid()
-
-  // Derive the PDA to use as mint account address.
-  // This same PDA is also used as the mint authority.
-  const [mintPDA] = PublicKey.findProgramAddressSync(
-    [Buffer.from(seed)],
-    program.programId
-  );
-
-  const [collateralPDA] = PublicKey.findProgramAddressSync(
-    [Buffer.from("collateral"),mintPDA.toBuffer()],
-    program.programId
-  );
+  const mintAccount = anchor.web3.Keypair.generate();
 
   const [constraint_signer_list] = PublicKey.findProgramAddressSync(
-    [Buffer.from("constraint_signer_list"),mintPDA.toBuffer()],
+    [Buffer.from("constraint_signer_list"),mintAccount.publicKey.toBuffer()],
     program.programId
   );
 
   const [multi_sig_admin_list] = PublicKey.findProgramAddressSync(
-    [Buffer.from("multi_sig_admin_list"),mintPDA.toBuffer()],
+    [Buffer.from("multi_sig_admin_list"),mintAccount.publicKey.toBuffer()],
     program.programId
   );
 
-  const metadata = {
-    name: "20Vision",
-    symbol: "/20vision",
-    uri: "https://raw.githubusercontent.com/20vision/example/master/hello.json",
-  };
-
   it("Create a token!", async () => {
-    // Derive the metadata account address.
-    const [metadataAddress] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("metadata"),
-        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mintPDA.toBuffer(),
-      ],
-      TOKEN_METADATA_PROGRAM_ID
-    );
 
     // ctx: Context<Initialize>,
     // seed: String,
@@ -65,51 +39,55 @@ describe("NFT Minter", () => {
     // token_uri: String,
 
     const transactionSignature = await program.methods
-      .initialize(seed,payer.publicKey,payer.publicKey, metadata.name, metadata.symbol, metadata.uri)
+      .initialize(payer.publicKey,payer.publicKey)
       .accounts({
         payer: payer.publicKey,
-        mintAccount: mintPDA,
-        collateralAccount: collateralPDA,
-        constraintSigner: constraint_signer_list,
-        multiSigAdminList: multi_sig_admin_list,
-        metadataAccount: metadataAddress,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        mintAccount: mintAccount.publicKey,
+        constraintSignerListAccount: constraint_signer_list,
+        multiSigAdminListAccount: multi_sig_admin_list,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
       })
+      .signers([mintAccount])
       .rpc();
+    
+    const userAccount = await program.account.multiSigAdminList.fetch(
+      multi_sig_admin_list
+    )
+
+    console.log('userAccount',userAccount)
 
     console.log("Success!");
-    console.log(`   Mint Address: ${mintPDA}`);
+    console.log(`   Mint Address: ${mintAccount.publicKey}`);
     console.log(`   Transaction Signature: ${transactionSignature}`);
   });
 
-  it("Mint 1 Token!", async () => {
+  it("Buy 1!", async () => {
     // Derive the associated token address account for the mint and payer.
-    const associatedTokenAccountAddress = getAssociatedTokenAddressSync(
-      mintPDA,
-      payer.publicKey
-    );
+    const [associatedUtilityStakeAccount] = PublicKey.findProgramAddressSync([
+      mintAccount.publicKey.toBuffer(),
+      payer.publicKey.toBuffer()
+    ],
+    program.programId);
 
     // Amount of tokens to mint.
-    const amount = new anchor.BN(100);
+    const amount_in = new anchor.BN(100);
+    const min_amount_out = new anchor.BN(100);
 
     const transactionSignature = await program.methods
-      .mintToken(seed,amount)
+      .buy(amount_in,min_amount_out)
       .accounts({
         payer: payer.publicKey,
-        mintAccount: mintPDA,
-        associatedTokenAccount: associatedTokenAccountAddress,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        mintAccount: mintAccount.publicKey,
+        associatedUtilityStakeAccount: associatedUtilityStakeAccount,
+        constraintSignerListAccount: constraint_signer_list,
         systemProgram: SystemProgram.programId,
       })
       .rpc();
 
     console.log("Success!");
     console.log(
-      `   Associated Token Account Address: ${associatedTokenAccountAddress}`
+      `   Associated Token Account Address: ${associatedUtilityStakeAccount}`
     );
     console.log(`   Transaction Signature: ${transactionSignature}`);
   });

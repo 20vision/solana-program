@@ -6,7 +6,7 @@ pub mod instructions;
 mod state;
 // mod errors;
 
-declare_id!("FYJN5mcoNEAisD72LWgtcLxBAeJhD4n3DQSyUHtHpptN");
+declare_id!("FyFs6B77iS2Lrec7GWskBUAKzC84BnWNFMX29jfZGKFE");
 
 #[program]
 pub mod utility_staking {
@@ -14,25 +14,17 @@ pub mod utility_staking {
 
     pub fn initialize(
         ctx: Context<Initialize>,
-        seed: String,
         constraint_signer: Pubkey,
-        admin_signer: Pubkey,
-        token_name: String,
-        token_symbol: String,
-        token_uri: String,
+        admin_signer: Pubkey
     ) -> Result<()> {
         initialize::initialize(
             ctx,
-            seed,
             constraint_signer,
-            admin_signer,
-            token_name,
-            token_symbol,
-            token_uri,
+            admin_signer
         )
     }
 
-    pub fn mint_token(ctx: Context<MintToken>, seed: String, amount: u64) -> Result<()> {
-        mint::mint_token(ctx, seed, amount)
+    pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<()> {
+        buy::buy(ctx, amount_in, min_output_amount)
     }
 }
