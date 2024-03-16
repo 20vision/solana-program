@@ -4,10 +4,7 @@
         "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
     },
     "dependencies": {
-        "@coral-xyz/anchor": "^0.29.0",
-        "@metaplex-foundation/mpl-token-metadata": "^2.5.2",
-        "@solana/spl-token": "^0.3.8",
-        "uniqid": "^5.4.0"
+        "@coral-xyz/anchor": "^0.29.0"
     },
     "devDependencies": {
         "@types/bn.js": "^5.1.0",

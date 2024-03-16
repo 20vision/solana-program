@@ -47,49 +47,49 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
 
     let my_stakes = I64F64::from_num(amount_in).checked_sub(my_stakes_burnt).unwrap();
 
-    let subtracted_total_stakes = stakes.checked_sub(my_stakes).unwrap();
+    // let subtracted_total_stakes = stakes.checked_sub(my_stakes).unwrap();
 
-    let subtracted_total_stakes_squared = subtracted_total_stakes.checked_mul(subtracted_total_stakes).unwrap();
+    // let subtracted_total_stakes_squared = subtracted_total_stakes.checked_mul(subtracted_total_stakes).unwrap();
     // P*(x) = 0.075 * x^2
-    let collateral_rest = I64F64::from_num(3)
-            .checked_div(I64F64::from_num(40))
-            .unwrap()
-        .checked_mul(subtracted_total_stakes_squared)
-        .unwrap();
+    // let collateral_rest = I64F64::from_num(3)
+    //         .checked_div(I64F64::from_num(40))
+    //         .unwrap()
+    //     .checked_mul(subtracted_total_stakes_squared)
+    //     .unwrap();
 
-    let my_collateral = collateral.checked_sub(collateral_rest).unwrap();
+    // let my_collateral = collateral.checked_sub(collateral_rest).unwrap();
     
-    let my_collateral_u64 = my_collateral.to_num::<u64>();
+    // let my_collateral_u64 = my_collateral.to_num::<u64>();
 
-    if my_collateral_u64 < min_output_amount {
-        return Err(anchor_lang::error!(ContractError::PriceChanged)); 
-    }
+    // if my_collateral_u64 < min_output_amount {
+    //     return Err(anchor_lang::error!(ContractError::PriceChanged)); 
+    // }
 
-    let associated_utility_stake_account = &mut ctx.accounts.associated_utility_stake_account;
+    // let associated_utility_stake_account = &mut ctx.accounts.associated_utility_stake_account;
 
-    if associated_utility_stake_account.amount < my_collateral_u64{
-        return Err(anchor_lang::error!(ContractError::InsufficientTokenBalance)); 
-    }
+    // if associated_utility_stake_account.amount < my_collateral_u64{
+    //     return Err(anchor_lang::error!(ContractError::InsufficientTokenBalance)); 
+    // }
 
-    associated_utility_stake_account.amount = I64F64::from_num(associated_utility_stake_account.amount).checked_sub(my_collateral).unwrap().to_num::<u64>();
+    // associated_utility_stake_account.amount = I64F64::from_num(associated_utility_stake_account.amount).checked_sub(my_collateral).unwrap().to_num::<u64>();
 
-    mint_account.stakes_total = I64F64::from_num(mint_account.stakes_total).checked_sub(I64F64::from_num(amount_in)).unwrap().to_num::<u64>();
-    mint_account.collateral = I64F64::from_num(mint_account.collateral).checked_sub(my_collateral).unwrap().to_num::<u64>();
+    // mint_account.stakes_total = I64F64::from_num(mint_account.stakes_total).checked_sub(I64F64::from_num(amount_in)).unwrap().to_num::<u64>();
+    // mint_account.collateral = I64F64::from_num(mint_account.collateral).checked_sub(my_collateral).unwrap().to_num::<u64>();
     
     
-    msg!("amount_out: {}", my_collateral_u64);
-    msg!("amount_in: {}", amount_in);
+    // msg!("amount_out: {}", my_collateral_u64);
+    // msg!("amount_in: {}", amount_in);
 
-    system_program::transfer(
-        CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.mint_account.to_account_info(),
-                to: ctx.accounts.seller.to_account_info(),
-            },
-        ),
-        my_collateral_u64,
-    )?;
+    // system_program::transfer(
+    //     CpiContext::new(
+    //         ctx.accounts.system_program.to_account_info(),
+    //         system_program::Transfer {
+    //             from: ctx.accounts.mint_account.to_account_info(),
+    //             to: ctx.accounts.seller.to_account_info(),
+    //         },
+    //     ),
+    //     my_collateral_u64,
+    // )?;
 
     Ok(())
 }

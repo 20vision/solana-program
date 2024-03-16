@@ -1,13 +1,6 @@
-import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import * as anchor from "@coral-xyz/anchor";
 import { UtilityStaking } from "../target/types/utility_staking";
 import { Keypair,PublicKey, SYSVAR_RENT_PUBKEY, SystemProgram } from "@solana/web3.js";
-import {
-  getAssociatedTokenAddressSync,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
-import uniqid from 'uniqid';
 import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 
 describe("Utility Staking", () => {
@@ -97,11 +90,11 @@ describe("Utility Staking", () => {
       .signers([constraintSigner])
       .rpc();
 
-    const userAccount = await program.account.multiSigAdminList.fetch(
-      associatedUtilityStakeAccount
-    )
+    // const userAccount = await program.account.multiSigAdminList.fetch(
+    //   associatedUtilityStakeAccount
+    // )
 
-    console.log(`Success ! ${userAccount}`);
+    // console.log(`Success ! ${userAccount}`);
     console.log(
       `   Associated Token Account Address: ${associatedUtilityStakeAccount}`
     );
@@ -130,11 +123,11 @@ describe("Utility Staking", () => {
       })
       .rpc();
 
-    const userAccount = await program.account.multiSigAdminList.fetch(
-      associatedUtilityStakeAccount
-    )
+    // const userAccount = await program.account.multiSigAdminList.fetch(
+    //   associatedUtilityStakeAccount
+    // )
 
-      console.log(`Success ! ${userAccount}`);
+    //   console.log(`Success ! ${userAccount}`);
     console.log(
       `   Associated Token Account Address: ${associatedUtilityStakeAccount}`
     );
