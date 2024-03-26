@@ -2,7 +2,7 @@ use {
     anchor_lang::prelude::*,
     anchor_lang::system_program,
 };
-use fixed::types::I64F64;
+use fixed::types::U128F0;
 use crate::state::{
     UtilityStakeAccount,
     UtilityStakeMint,
@@ -44,6 +44,8 @@ pub struct Buy<'info> {
 }
 
 pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<()> {
+
+
     let constraint_signer_list = &ctx.accounts.constraint_signer_list_account;
 
     // Check if all pubkeys in the constraint_signer_list have signed the transaction
@@ -62,33 +64,36 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
 
     let mint_account = &mut ctx.accounts.mint_account;
 
-    let collateral = I64F64::from_num(mint_account.collateral);
+    let collateral = mint_account.collateral as u128;
 
-    
+    // Integral End - Start = Collateral / Buy Price
+    // p = k*x^2 - k*x_1^2
 
-    let sum_collateral = I64F64::from_num(amount_in).checked_add(collateral).unwrap();
+    // x = sqrt((p+k*x_1^2)/k)
 
+    // p + k*x_1^2
+    let sum_collateral = (amount_in as u128).checked_add(collateral).unwrap();
 
-    let sum_collateral_squared = I64F64::from_num(sum_collateral).checked_mul(I64F64::from_num(sum_collateral)).unwrap();
+    // k_div = 1/k
+    let k_div = 30000000000000000 as u128;
 
-    let sum_token = sum_collateral_squared.checked_mul(
-        I64F64::from_num(3)
-            .checked_div(I64F64::from_num(40))
-            .unwrap()
-    ).unwrap();
+    // overflow - can handle up to sqrt 2^128 -1  / 10^9 = 18446744073 SOL = greater than total supply
+    let token_product = sum_collateral.checked_mul(k_div).unwrap();
 
-    let existing_token = I64F64::from_num(mint_account.stakes_total).checked_sub(I64F64::from_num(mint_account.stakes_burnt)).unwrap();
-    let buyer_token = sum_token.checked_sub(existing_token).unwrap().to_num::<u64>();
+    let buyer_token = U128F0::from_num(token_product as u128)
+        .sqrt()
+        .to_num::<u64>();
 
-   
+    msg!("Squared: {}", buyer_token);
 
     if buyer_token < min_output_amount {
         return Err(anchor_lang::error!(ContractError::PriceChanged)); 
     }
 
-    mint_account.stakes_total = I64F64::from_num(buyer_token).checked_add(I64F64::from_num(mint_account.stakes_total)).unwrap().to_num::<u64>();
-    mint_account.collateral = sum_collateral.to_num::<u64>();
-    
+    msg!("min_output_amount: {}", min_output_amount);
+
+    mint_account.stakes_total = buyer_token.checked_add(mint_account.stakes_total).unwrap() as u64;
+    mint_account.collateral = sum_collateral as u64;
 
     let associated_utility_stake_account = &mut ctx.accounts.associated_utility_stake_account;
 
@@ -103,14 +108,10 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
     if associated_utility_stake_account.amount == u64::default(){
         associated_utility_stake_account.amount = buyer_token;
     }else{
-        associated_utility_stake_account.amount = I64F64::from_num(associated_utility_stake_account.amount).checked_add(I64F64::from_num(buyer_token)).unwrap().to_num::<u64>();;
+        associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_add(buyer_token).unwrap() as u64;
     }
     
-    
-    msg!("sum_token: {}", sum_token.to_num::<u64>());
-    msg!("collateral: {}", collateral.to_num::<u64>());
-    msg!("sum_collateral: {}", sum_collateral.to_num::<u64>());
-    msg!("buyer_token: {}", buyer_token);
+    msg!("buyer_token: {}", associated_utility_stake_account.amount);
     msg!("mint_account.stakes_total: {}", mint_account.stakes_total);
     msg!("mint_account.collateral: {}", mint_account.collateral);
 

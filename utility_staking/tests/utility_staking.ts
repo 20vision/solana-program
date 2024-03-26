@@ -70,7 +70,7 @@ describe("Utility Staking", () => {
     program.programId);
 
     // Amount of tokens to mint.
-    const amount_in = new anchor.BN(100);
+    const amount_in = new anchor.BN(1).mul((new anchor.BN(10)).pow(new anchor.BN(9)));
     const min_amount_out = new anchor.BN(100);
 
     const transactionSignature = await program.methods
@@ -114,14 +114,14 @@ describe("Utility Staking", () => {
     const min_amount_out = new anchor.BN(100);
 
     const transactionSignature = await program.methods
-      .sell(amount_in,min_amount_out)
-      .accounts({
-        buyer: payer.publicKey,
-        mintAccount: mintAccount.publicKey,
-        associatedUtilityStakeAccount: associatedUtilityStakeAccount,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
+    .sell(amount_in,min_amount_out)
+    .accounts({
+      buyer: payer.publicKey,
+      mintAccount: mintAccount.publicKey,
+      associatedUtilityStakeAccount: associatedUtilityStakeAccount,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
 
     // const userAccount = await program.account.multiSigAdminList.fetch(
     //   associatedUtilityStakeAccount

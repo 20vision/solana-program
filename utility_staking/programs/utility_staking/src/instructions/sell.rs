@@ -2,7 +2,7 @@ use {
     anchor_lang::prelude::*,
     anchor_lang::system_program,
 };
-use fixed::types::I64F64;
+use fixed::types::U64F64;
 use crate::state::{
     UtilityStakeAccount,
     UtilityStakeMint,
@@ -35,61 +35,75 @@ pub struct Sell<'info> {
 
 pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Result<()> {
 
+    let associated_utility_stake_account = &mut ctx.accounts.associated_utility_stake_account;
+
+    // Token are always saved as full token amount, true token amount = after burnt = only for selling/buying price.
+    // Otherwise I would have to change balances realtime after withdrawal request = high compute
+    if associated_utility_stake_account.amount < amount_in{
+        return Err(anchor_lang::error!(ContractError::InsufficientTokenBalance)); 
+    }
+
     let mint_account = &mut ctx.accounts.mint_account;
 
-    let stakes = I64F64::from_num(mint_account.stakes_total).checked_sub(I64F64::from_num(mint_account.stakes_burnt)).unwrap();
+    // p_sell = collateral - k*(total-amount_in)^2
 
-    let collateral = I64F64::from_num(mint_account.collateral);
+    // k_div = 1/k
+    let k_div = 30000000000000000 as u128;
 
-    let burnt_ratio = I64F64::from_num(mint_account.stakes_burnt).checked_div(I64F64::from_num(mint_account.stakes_total)).unwrap();
+
+    let stakes_total_minus_burnt = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap() as u128;
+
+    let amount_in_minus_burnt = (amount_in as u128);
+
+    // If burnt, otherwise would divide 0
+    if mint_account.stakes_burnt > 0 {
+        // amount - (amount*burnt)/total
+        amount_in_minus_burnt = (amount_in as u128).checked_sub(
+            (amount_in as u128).checked_mul(mint_account.stakes_burnt as u128).unwrap()
+                .checked_div(mint_account.stakes_total as u128).unwrap()
+        ) as u128;
+    }
+
+    // k * (total - amount_in)^2
+    let stakes_after_sell = stakes_total_minus_burnt.checked_sub(amount_in_minus_burnt).unwrap();
+    let stakes_after_sell_squared = stakes_after_sell.checked_mul(stakes_after_sell).unwrap();
+
+    // Convert back to u64 as collateral = lamports has a max token supply of 500 million SOL
+    let k_stakes_after_sell_squared = stakes_after_sell_squared.checked_div(k_div).unwrap() as u64;
+
+    let lamports_returned = mint_account.collateral.checked_sub(k_stakes_after_sell_squared).unwrap();
+
+
+    if my_collateral_u64 < min_output_amount {
+        return Err(anchor_lang::error!(ContractError::PriceChanged)); 
+    }
+
+    if lamports_returned < min_output_amount {
+        return Err(anchor_lang::error!(ContractError::PriceChanged)); 
+    }
+
+    if mint_account.collateral < lamports_returned {
+        return Err(anchor_lang::error!(ContractError::InsufficientCollateralInContract)); 
+    }
+
+    associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_sub(amount_in).unwrap();
+    mint_account.stakes_total = mint_account.stakes_total.checked_sub(amount_in).unwrap();
+    mint_account.collateral = mint_account.collateral.checked_sub(lamports_returned).unwrap();
     
-    let my_stakes_burnt = I64F64::from_num(amount_in).checked_mul(burnt_ratio).unwrap();
-
-    let my_stakes = I64F64::from_num(amount_in).checked_sub(my_stakes_burnt).unwrap();
-
-    // let subtracted_total_stakes = stakes.checked_sub(my_stakes).unwrap();
-
-    // let subtracted_total_stakes_squared = subtracted_total_stakes.checked_mul(subtracted_total_stakes).unwrap();
-    // P*(x) = 0.075 * x^2
-    // let collateral_rest = I64F64::from_num(3)
-    //         .checked_div(I64F64::from_num(40))
-    //         .unwrap()
-    //     .checked_mul(subtracted_total_stakes_squared)
-    //     .unwrap();
-
-    // let my_collateral = collateral.checked_sub(collateral_rest).unwrap();
     
-    // let my_collateral_u64 = my_collateral.to_num::<u64>();
+    msg!("amount_out: {}", lamports_returned);
+    msg!("amount_in: {}", amount_in);
 
-    // if my_collateral_u64 < min_output_amount {
-    //     return Err(anchor_lang::error!(ContractError::PriceChanged)); 
-    // }
-
-    // let associated_utility_stake_account = &mut ctx.accounts.associated_utility_stake_account;
-
-    // if associated_utility_stake_account.amount < my_collateral_u64{
-    //     return Err(anchor_lang::error!(ContractError::InsufficientTokenBalance)); 
-    // }
-
-    // associated_utility_stake_account.amount = I64F64::from_num(associated_utility_stake_account.amount).checked_sub(my_collateral).unwrap().to_num::<u64>();
-
-    // mint_account.stakes_total = I64F64::from_num(mint_account.stakes_total).checked_sub(I64F64::from_num(amount_in)).unwrap().to_num::<u64>();
-    // mint_account.collateral = I64F64::from_num(mint_account.collateral).checked_sub(my_collateral).unwrap().to_num::<u64>();
-    
-    
-    // msg!("amount_out: {}", my_collateral_u64);
-    // msg!("amount_in: {}", amount_in);
-
-    // system_program::transfer(
-    //     CpiContext::new(
-    //         ctx.accounts.system_program.to_account_info(),
-    //         system_program::Transfer {
-    //             from: ctx.accounts.mint_account.to_account_info(),
-    //             to: ctx.accounts.seller.to_account_info(),
-    //         },
-    //     ),
-    //     my_collateral_u64,
-    // )?;
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.mint_account.to_account_info(),
+                to: ctx.accounts.seller.to_account_info(),
+            },
+        ),
+        lamports_returned,
+    )?;
 
     Ok(())
 }

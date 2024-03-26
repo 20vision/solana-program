@@ -16,4 +16,7 @@ pub enum ContractError {
 
     #[msg("You don't own enough Token.")]
     InsufficientTokenBalance,
+
+    #[msg("Insufficient Collateral in Contract.")]
+    InsufficientCollateralInContract,
 }
