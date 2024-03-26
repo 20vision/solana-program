@@ -2,14 +2,17 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum ContractError {
-    #[msg("A required constraint signer is missing.")]
-    MissingConstraintSigner,
+    #[msg("Buy request provided wrong constraint signer.")]
+    InvalidConstraintSigner,
 
-    #[msg("Signers are not in the correct order.")]
-    IncorrectOrderOfSigners,
+    #[msg("Constraint signer did not sign the buy request.")]
+    ConstraintSignerNotSigned,
 
-    #[msg("A required constraint signer did not sign the transaction.")]
-    MissingSignatureConstraintSigner,
+    #[msg("Request provided wrong admin signer.")]
+    InvalidAdminSigner,
+
+    #[msg("Admin signer did not sign the transaction.")]
+    AdminSignerNotSigned,
 
     #[msg("The price per token changed.")]
     PriceChanged,
@@ -19,4 +22,10 @@ pub enum ContractError {
 
     #[msg("Insufficient Collateral in Contract.")]
     InsufficientCollateralInContract,
+    
+    #[msg("There is still time left before the withdrawal deadline.")]
+    StillTimeLeft,
+
+    #[msg("You have to withdraw within 10 days after withdrawal deadline.")]
+    TooLate,
 }

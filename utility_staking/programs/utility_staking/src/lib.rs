@@ -26,6 +26,14 @@ pub mod utility_staking {
         )
     }
 
+    pub fn change_admin_signer(ctx: Context<Change>, new_admin: Pubkey) -> Result<()> {
+        change::admin_signer(ctx, new_admin)
+    }
+
+    pub fn change_constraint_signer(ctx: Context<Change>, new_constraint_signer: Pubkey) -> Result<()> {
+        change::constraint_signer(ctx, new_constraint_signer)
+    }
+
     pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<()> {
         buy::buy(ctx, amount_in, min_output_amount)
     }

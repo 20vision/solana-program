@@ -6,7 +6,6 @@ use fixed::types::U128F0;
 use crate::state::{
     UtilityStakeAccount,
     UtilityStakeMint,
-    ConstraintFunctionSignerList,
 };
 
 use crate::errors::ContractError;
@@ -17,6 +16,9 @@ use crate::id;
 pub struct Buy<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
+
+    #[account(mut)]
+    pub constraint_signer: Signer<'info>,
 
     #[account(
         mut
@@ -33,36 +35,22 @@ pub struct Buy<'info> {
     )]
     pub associated_utility_stake_account: Box<Account<'info, UtilityStakeAccount>>,
 
-    // Some functions like the buy function can have constraints like the seller having to sign the buy request.
-    #[account(
-        seeds = [b"constraint_signer_list", mint_account.key().as_ref()],
-        bump
-    )]
-    pub constraint_signer_list_account: Box<Account<'info, ConstraintFunctionSignerList>>,
-
     pub system_program: Program<'info, System>,
 }
 
 pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<()> {
 
-
-    let constraint_signer_list = &ctx.accounts.constraint_signer_list_account;
-
-    // Check if all pubkeys in the constraint_signer_list have signed the transaction
-    for (i, required_signer) in constraint_signer_list.constraint_account_ids.iter().enumerate() {
-        let signer = &ctx.remaining_accounts.get(i).ok_or_else(|| 
-            anchor_lang::error!(ContractError::MissingConstraintSigner))?;
-        
-        if signer.key() != *required_signer {
-            return Err(anchor_lang::error!(ContractError::IncorrectOrderOfSigners));
-        }
-        
-        if !signer.is_signer {
-            return Err(anchor_lang::error!(ContractError::MissingSignatureConstraintSigner));
-        }
-    }
-
     let mint_account = &mut ctx.accounts.mint_account;
+
+    let required_signer = mint_account.rule_signer;
+
+    if ctx.accounts.constraint_signer.key() != *required_signer {
+        return Err(anchor_lang::error!(ContractError::InvalidConstraintSigner));
+    }
+    
+    if !constraint_signer.is_signer {
+        return Err(anchor_lang::error!(ContractError::ConstraintSignerNotSigned));
+    }
 
     let collateral = mint_account.collateral as u128;
 

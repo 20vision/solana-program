@@ -6,7 +6,6 @@ use fixed::types::U64F64;
 use crate::state::{
     UtilityStakeAccount,
     UtilityStakeMint,
-    ConstraintFunctionSignerList,
 };
 
 use crate::errors::ContractError;
@@ -73,10 +72,6 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
 
     let lamports_returned = mint_account.collateral.checked_sub(k_stakes_after_sell_squared).unwrap();
 
-
-    if my_collateral_u64 < min_output_amount {
-        return Err(anchor_lang::error!(ContractError::PriceChanged)); 
-    }
 
     if lamports_returned < min_output_amount {
         return Err(anchor_lang::error!(ContractError::PriceChanged)); 

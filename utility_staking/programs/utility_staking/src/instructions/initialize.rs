@@ -8,8 +8,6 @@ use fixed::types::I64F64;
 use fixed_sqrt::FixedSqrt;
 
 use crate::state::{
-    ConstraintFunctionSignerList,
-    MultiSigAdminList,
     UtilityStakeMint,
 };
 
@@ -26,26 +24,6 @@ pub struct Initialize<'info> {
         space = 8 + UtilityStakeMint::LEN
     )]
     pub mint_account: Box<Account<'info, UtilityStakeMint>>,
-
-    // Some functions like the buy function can have constraints like the seller having to sign the buy request.
-    #[account(
-        init,
-        payer = payer,
-        space = 8 + ConstraintFunctionSignerList::LEN,
-        seeds = [b"constraint_signer_list", mint_account.key().as_ref()],
-        bump
-    )]
-    pub constraint_signer_list_account: Box<Account<'info, ConstraintFunctionSignerList>>,
-
-    // Some functions like the withdrawal function can have constraints like the admins having to sign the buy request.
-    #[account(
-        init,
-        payer = payer,
-        space = 8 + MultiSigAdminList::LEN,
-        seeds = [b"multi_sig_admin_list", mint_account.key().as_ref()],
-        bump
-    )]
-    pub multi_sig_admin_list_account: Box<Account<'info, MultiSigAdminList>>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
