@@ -55,15 +55,9 @@ pub fn initialize(
     mint.stakes_burnt = 0;
     mint.collateral = min_collateral_lamports;
 
-    let constraint_signer_list_account = &mut ctx.accounts.constraint_signer_list_account;
-    constraint_signer_list_account.constraint_account_ids = vec![
-        constraint_signer,
-    ];
+    mint.admin_signer = admin_signer;
+    mint.constraint_signer = constraint_signer;
 
-    let multi_sig_admin_list_account = &mut ctx.accounts.multi_sig_admin_list_account;
-    multi_sig_admin_list_account.admin_account_ids = vec![
-        admin_signer,
-    ];
 
     system_program::transfer(
         CpiContext::new(

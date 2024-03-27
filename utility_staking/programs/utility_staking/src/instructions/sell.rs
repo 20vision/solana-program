@@ -52,7 +52,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
 
     let stakes_total_minus_burnt = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap() as u128;
 
-    let amount_in_minus_burnt = (amount_in as u128);
+    let mut amount_in_minus_burnt = amount_in as u128;
 
     // If burnt, otherwise would divide 0
     if mint_account.stakes_burnt > 0 {
@@ -60,7 +60,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
         amount_in_minus_burnt = (amount_in as u128).checked_sub(
             (amount_in as u128).checked_mul(mint_account.stakes_burnt as u128).unwrap()
                 .checked_div(mint_account.stakes_total as u128).unwrap()
-        ) as u128;
+        ).unwrap() as u128;
     }
 
     // k * (total - amount_in)^2

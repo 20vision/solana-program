@@ -42,13 +42,13 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
 
     let mint_account = &mut ctx.accounts.mint_account;
 
-    let required_signer = mint_account.rule_signer;
+    let required_signer = mint_account.constraint_signer;
 
-    if ctx.accounts.constraint_signer.key() != *required_signer {
+    if ctx.accounts.constraint_signer.key() != required_signer {
         return Err(anchor_lang::error!(ContractError::InvalidConstraintSigner));
     }
     
-    if !constraint_signer.is_signer {
+    if !ctx.accounts.constraint_signer.is_signer {
         return Err(anchor_lang::error!(ContractError::ConstraintSignerNotSigned));
     }
 

@@ -2,10 +2,13 @@ use {
     anchor_lang::prelude::*,
     anchor_lang::system_program,
 };
-use fixed::types::U128F0;
+use fixed::types::{
+    U128F0,
+    U64F64,
+};
 use crate::state::{
-    UtilityStakeAccount,
     UtilityStakeMint,
+    WithdrawalAccount
 };
 
 use crate::errors::ContractError;
@@ -22,7 +25,6 @@ pub struct WithdrawalInit<'info> {
     )]
     pub mint_account: Box<Account<'info, UtilityStakeMint>>,
 
-    // Mint account address is a PDA
     #[account(
         init_if_needed,
         payer = admin,
@@ -39,11 +41,11 @@ pub fn initialize(ctx: Context<WithdrawalInit>, amount: u64, description: String
 
     let mint_account = &mut ctx.accounts.mint_account;
 
-    if ctx.accounts.admin.key() != *mint_account.admin_signer {
+    if ctx.accounts.admin.key() != mint_account.admin_signer {
         return Err(anchor_lang::error!(ContractError::InvalidAdminSigner));
     }
     
-    if !admin.is_signer {
+    if !ctx.accounts.admin.is_signer {
         return Err(anchor_lang::error!(ContractError::AdminSignerNotSigned));
     }
 
@@ -54,7 +56,7 @@ pub fn initialize(ctx: Context<WithdrawalInit>, amount: u64, description: String
     // ((9)/(42968750)) x + 864000
 
     // 10 Days minimum
-    let wait_time = 864000;
+    let mut wait_time = 864000 as u64;
     
     // smaller than 100 000$/300 estimated solana price
     if amount > 333333333333 {
@@ -64,16 +66,17 @@ pub fn initialize(ctx: Context<WithdrawalInit>, amount: u64, description: String
             // Linear growth between roughly 100k - 10 million $ => 10 days - 60 days
             // (9/42968750) x + 864000
 
-            let product = 9.checked_mul(amount).unwrap();
+            let mut product = (9 as u64).checked_mul(amount).unwrap();
 
             product = U64F64::from_num(product)
-            .checked_div(68750000)
+            .checked_div(U64F64::from_num(68750000))
+            .unwrap()
             .to_num::<u64>();
 
-            wait_time = product.checked_add(864000)
+            wait_time = product.checked_add(864000 as u64).unwrap();
         }else{
             // 60 days in seconds = 5184000
-            wait_time = 5184000;
+            wait_time = 5184000 as u64;
         }
     }
 
@@ -82,7 +85,7 @@ pub fn initialize(ctx: Context<WithdrawalInit>, amount: u64, description: String
     withdrawal.amount = amount;
 
     let clock = Clock::get()?;
-    withdrawal.deadline = clock.unix_timestamp.checked_add(wait_time as i64).unwrap();
+    withdrawal.deadline = (clock.unix_timestamp as u64).checked_add(wait_time).unwrap();
 
     withdrawal.description = description;
 
@@ -115,11 +118,11 @@ pub fn abort(ctx: Context<WithdrawalClosure>) -> Result<()> {
 
     let mint_account = &mut ctx.accounts.mint_account;
 
-    if ctx.accounts.admin.key() != *mint_account.admin_signer {
+    if ctx.accounts.admin.key() != mint_account.admin_signer {
         return Err(anchor_lang::error!(ContractError::InvalidAdminSigner));
     }
     
-    if !admin.is_signer {
+    if !ctx.accounts.admin.is_signer {
         return Err(anchor_lang::error!(ContractError::AdminSignerNotSigned));
     }
 
@@ -153,7 +156,7 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
     let mint_account = &mut ctx.accounts.mint_account;
     let withdrawal = &mut ctx.accounts.withdrawal_account;
 
-    if ctx.accounts.admin.key() != *mint_account.admin_signer {
+    if ctx.accounts.admin.key() != mint_account.admin_signer {
         return Err(anchor_lang::error!(ContractError::InvalidAdminSigner));
     }
 
@@ -163,14 +166,14 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
 
     let clock = Clock::get()?;
 
-    if clock.unix_timestamp < withdrawal.deadline {
+    if (clock.unix_timestamp as u64) < withdrawal.deadline {
         return Err(anchor_lang::error!(ContractError::StillTimeLeft));
     }
 
     // Have to withdraw within 10 days after withdrawal deadline.
     let margin_withdrawal_deadline = withdrawal.deadline.checked_add(864000 as u64).unwrap();
 
-    if clock.unix_timestamp > margin_withdrawal_deadline {
+    if (clock.unix_timestamp as u64) > margin_withdrawal_deadline {
         return Err(anchor_lang::error!(ContractError::TooLate));
     }
 
@@ -184,7 +187,7 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
     let k_div = 30000000000000000 as u128;
 
     // collateral / k
-    let token_product = mint_account.collateral.checked_mul(k_div).unwrap();
+    let token_product = (mint_account.collateral as u128).checked_mul(k_div).unwrap() as u128;
 
     // sqrt(collateral / k)
     let sqrt_token = U128F0::from_num(token_product as u128)

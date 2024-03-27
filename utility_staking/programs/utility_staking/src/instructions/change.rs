@@ -27,11 +27,11 @@ pub fn admin_signer(ctx: Context<Change>, new_admin: Pubkey) -> Result<()> {
 
     let mint_account = &mut ctx.accounts.mint_account;
 
-    if ctx.accounts.admin.key() != *mint_account.admin_signer {
+    if ctx.accounts.admin.key() != mint_account.admin_signer {
         return Err(anchor_lang::error!(ContractError::InvalidAdminSigner));
     }
     
-    if !admin.is_signer {
+    if !ctx.accounts.admin.is_signer {
         return Err(anchor_lang::error!(ContractError::AdminSignerNotSigned));
     }
 
@@ -44,11 +44,11 @@ pub fn constraint_signer(ctx: Context<Change>, new_constraint_signer: Pubkey) ->
 
     let mint_account = &mut ctx.accounts.mint_account;
 
-    if ctx.accounts.admin.key() != *mint_account.admin_signer {
+    if ctx.accounts.admin.key() != mint_account.admin_signer {
         return Err(anchor_lang::error!(ContractError::InvalidAdminSigner));
     }
     
-    if !admin.is_signer {
+    if !ctx.accounts.admin.is_signer {
         return Err(anchor_lang::error!(ContractError::AdminSignerNotSigned));
     }
 
