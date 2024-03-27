@@ -60,6 +60,8 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
     // x = sqrt((p+k*x_1^2)/k)
 
     // p + k*x_1^2
+    // k*x_1^2 = existing collateral
+    // collateral = total_collateral - withdrawn collateral
     let sum_collateral = (amount_in as u128).checked_add(collateral).unwrap();
 
     // k_div = 1/k

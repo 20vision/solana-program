@@ -36,15 +36,15 @@ pub fn initialize(
 ) -> Result<()> {
 
     // Min lamports to be rent exempt
-    let min_collateral_lamports = (Rent::get()?).minimum_balance(8 + UtilityStakeMint::LEN);
+    let min_collateral_lamports = (Rent::get()?).minimum_balance(8 + UtilityStakeMint::LEN) as u128;
 
-    let initial_token = I64F64::from_num(min_collateral_lamports)
-        .checked_div(
-            I64F64::from_num(3)
-                .checked_div(I64F64::from_num(40))
-                .unwrap(),
-        )
-        .unwrap()
+    // k_div = 1/k
+    let k_div = 30000000000000000 as u128;
+
+    // overflow - can handle up to sqrt 2^128 -1  / 10^9 = 18446744073 SOL = greater than total supply
+    let token_product = min_collateral_lamports.checked_mul(k_div).unwrap();
+
+    let initial_token = U128F0::from_num(token_product as u128)
         .sqrt()
         .to_num::<u64>();
 
