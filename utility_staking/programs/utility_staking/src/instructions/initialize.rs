@@ -4,7 +4,7 @@ use {
     anchor_lang::prelude::*,
     anchor_lang::system_program,
 };
-use fixed::types::I64F64;
+use fixed::types::U128F0;
 use fixed_sqrt::FixedSqrt;
 
 use crate::state::{
@@ -36,13 +36,13 @@ pub fn initialize(
 ) -> Result<()> {
 
     // Min lamports to be rent exempt
-    let min_collateral_lamports = (Rent::get()?).minimum_balance(8 + UtilityStakeMint::LEN) as u128;
+    let min_collateral_lamports = (Rent::get()?).minimum_balance(8 + UtilityStakeMint::LEN) as u64;
 
     // k_div = 1/k
     let k_div = 30000000000000000 as u128;
 
     // overflow - can handle up to sqrt 2^128 -1  / 10^9 = 18446744073 SOL = greater than total supply
-    let token_product = min_collateral_lamports.checked_mul(k_div).unwrap();
+    let token_product = (min_collateral_lamports as u128).checked_mul(k_div).unwrap();
 
     let initial_token = U128F0::from_num(token_product as u128)
         .sqrt()

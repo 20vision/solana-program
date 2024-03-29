@@ -28,4 +28,7 @@ pub enum ContractError {
 
     #[msg("You have to withdraw within 10 days after withdrawal deadline.")]
     TooLate,
+
+    #[msg("You have to withdraw within 10 days after withdrawal deadline.")]
+    InvalidInputAmount,
 }

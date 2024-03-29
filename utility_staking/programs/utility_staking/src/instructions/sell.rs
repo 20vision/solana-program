@@ -50,27 +50,20 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     let k_div = 30000000000000000 as u128;
 
 
-    let stakes_total_minus_burnt = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap() as u128;
+    // p(x_1, x_2) = k * x_2^2 - k * x_1^2
+    // p(x_1, x_2) = collateral - 1/k_div * x_2^2
 
-    let mut amount_in_minus_burnt = amount_in as u128;
+    let x_2 = (
+        mint_account.stakes_total
+        // Adjustment
+        .checked_sub(mint_account.stakes_burnt).unwrap()
+        // x_2 = x + amount_in
+        .checked_sub(amount_in)
+    )
 
-    // If burnt, otherwise would divide 0
-    if mint_account.stakes_burnt > 0 {
-        // amount - (amount*burnt)/total
-        amount_in_minus_burnt = (amount_in as u128).checked_sub(
-            (amount_in as u128).checked_mul(mint_account.stakes_burnt as u128).unwrap()
-                .checked_div(mint_account.stakes_total as u128).unwrap()
-        ).unwrap() as u128;
-    }
-
-    // k * (total - amount_in)^2
-    let stakes_after_sell = stakes_total_minus_burnt.checked_sub(amount_in_minus_burnt).unwrap();
-    let stakes_after_sell_squared = stakes_after_sell.checked_mul(stakes_after_sell).unwrap();
-
-    // Convert back to u64 as collateral = lamports has a max token supply of 500 million SOL
-    let k_stakes_after_sell_squared = stakes_after_sell_squared.checked_div(k_div).unwrap() as u64;
-
-    let lamports_returned = mint_account.collateral.checked_sub(k_stakes_after_sell_squared).unwrap();
+    let price = (mint_account.collateral as u128).sub(
+        (x_2.mul(x_2))
+        .div(k_div))
 
 
     if lamports_returned < min_output_amount {
