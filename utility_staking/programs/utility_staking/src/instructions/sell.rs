@@ -53,17 +53,22 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     // p(x_1, x_2) = k * x_2^2 - k * x_1^2
     // p(x_1, x_2) = collateral - 1/k_div * x_2^2
 
-    let x_2 = (
-        mint_account.stakes_total
+    let x_2 = (mint_account.stakes_total as u128)
         // Adjustment
-        .checked_sub(mint_account.stakes_burnt).unwrap()
+        .checked_sub(mint_account.stakes_burnt as u128).unwrap()
         // x_2 = x + amount_in
-        .checked_sub(amount_in)
-    )
+        .checked_sub(
+            (amount_in as u128).checked_sub(
+                (amount_in as u128)
+                .checked_mul(mint_account.stakes_burnt as u128).unwrap()
+                .checked_div(mint_account.stakes_total as u128).unwrap()
+            ).unwrap() as u128
+        ).unwrap() as u128;
 
-    let price = (mint_account.collateral as u128).sub(
-        (x_2.mul(x_2))
-        .div(k_div))
+    let lamports_returned = (mint_account.collateral as u128).checked_sub(
+        (x_2.checked_mul(x_2).unwrap())
+        .checked_div(k_div).unwrap()
+    ).unwrap() as u64;
 
 
     if lamports_returned < min_output_amount {
