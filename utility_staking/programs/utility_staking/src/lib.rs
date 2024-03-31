@@ -8,7 +8,7 @@ mod utils;
 mod errors;
 // mod errors;
 
-declare_id!("6SXFJo7ovcKsqpiEn1KLUMzoMh5a7fKbbuLNUeLwdc1j");
+declare_id!("8UvB7PRgCcxC4DtawNTcfsgFNiKqdWx5X2P9Mch7dbNo");
 
 #[program]
 pub mod utility_staking {
