@@ -38,7 +38,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
 
     // Token are always saved as full token amount, true token amount = after burnt = only for selling/buying price.
     // Otherwise I would have to change balances realtime after withdrawal request = high compute
-    if associated_utility_stake_account.amount < amount_in{
+    if associated_utility_stake_account.amount < amount_in {
         return Err(anchor_lang::error!(ContractError::InsufficientTokenBalance)); 
     }
 
@@ -49,42 +49,37 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     // k_div = 1/k
     let k_div = 30000000000000000 as u128;
 
+    // sell = collateral - k * x_diff^2
 
-    // p(x_1, x_2) = k * x_2^2 - k * x_1^2
-    // p(x_1, x_2) = collateral - 1/k_div * x_2^2
+    let adjusted_my_token = amount_in.checked_sub((amount_in.checked_mul(mint_account.stakes_burnt).unwrap()).checked_div(mint_account.stakes_total).unwrap()).unwrap();
 
-    let x_2 = (mint_account.stakes_total as u128)
-        // Adjustment
-        .checked_sub(mint_account.stakes_burnt as u128).unwrap()
-        // x_2 = x + amount_in
-        .checked_sub(
-            (amount_in as u128).checked_sub(
-                (amount_in as u128)
-                .checked_mul(mint_account.stakes_burnt as u128).unwrap()
-                .checked_div(mint_account.stakes_total as u128).unwrap()
-            ).unwrap() as u128
-        ).unwrap() as u128;
+    let adjusted_stakes_total = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
 
-    let lamports_returned = (mint_account.collateral as u128).checked_sub(
-        (x_2.checked_mul(x_2).unwrap())
-        .checked_div(k_div).unwrap()
-    ).unwrap() as u64;
+    if adjusted_my_token > adjusted_stakes_total {
+        return Err(anchor_lang::error!(ContractError::InsufficientCollateralInContract)); 
+    }
+
+    let adjusted_token = adjusted_stakes_total.checked_sub(adjusted_my_token).unwrap();
+
+    let total_collater_after = ((adjusted_token as u128).checked_mul(adjusted_token as u128).unwrap()).checked_div(k_div).unwrap();
+
+    let sell_price = mint_account.collateral.checked_sub(total_collater_after as u64).unwrap();
 
 
-    if lamports_returned < min_output_amount {
+    if sell_price < min_output_amount {
         return Err(anchor_lang::error!(ContractError::PriceChanged)); 
     }
 
-    if mint_account.collateral < lamports_returned {
+    if mint_account.collateral < sell_price {
         return Err(anchor_lang::error!(ContractError::InsufficientCollateralInContract)); 
     }
 
     associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_sub(amount_in).unwrap();
     mint_account.stakes_total = mint_account.stakes_total.checked_sub(amount_in).unwrap();
-    mint_account.collateral = mint_account.collateral.checked_sub(lamports_returned).unwrap();
+    mint_account.collateral = mint_account.collateral.checked_sub(sell_price).unwrap();
     
     
-    msg!("amount_out: {}", lamports_returned);
+    msg!("amount_out: {}", sell_price);
     msg!("amount_in: {}", amount_in);
 
     system_program::transfer(
@@ -95,7 +90,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
                 to: ctx.accounts.seller.to_account_info(),
             },
         ),
-        lamports_returned,
+        sell_price,
     )?;
 
     Ok(())
