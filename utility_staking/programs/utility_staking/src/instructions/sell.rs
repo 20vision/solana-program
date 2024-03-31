@@ -24,6 +24,7 @@ pub struct Sell<'info> {
 
     // Mint account address is a PDA
     #[account(
+        mut,
         seeds = [mint_account.key().as_ref(), seller.key().as_ref()],
         bump
     )]
