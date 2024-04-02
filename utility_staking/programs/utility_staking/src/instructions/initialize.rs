@@ -13,6 +13,7 @@ use crate::state::{
 
 
 #[derive(Accounts)]
+#[instruction(seed: String)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -21,7 +22,9 @@ pub struct Initialize<'info> {
         init,
         signer,
         payer = payer,
-        space = 8 + UtilityStakeMint::LEN
+        space = 8 + UtilityStakeMint::LEN,
+        seeds = [seed.as_bytes(), b"MINT"],
+        bump
     )]
     pub mint_account: Box<Account<'info, UtilityStakeMint>>,
 
@@ -31,6 +34,7 @@ pub struct Initialize<'info> {
 
 pub fn initialize(
     ctx: Context<Initialize>,
+    seed: String,
     constraint_signer: Pubkey,
     admin_signer: Pubkey,
 ) -> Result<()> {
