@@ -22,6 +22,13 @@ pub struct Sell<'info> {
     )]
     pub mint_account: Box<Account<'info, UtilityStakeMint>>,
 
+    #[account(
+        mut,
+        seeds = [mint_account.key().as_ref(), b"Collateral"],
+        bump
+    )]
+    pub collateral_account: AccountInfo<'info>,
+
     // Mint account address is a PDA
     #[account(
         mut,
@@ -83,13 +90,22 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     msg!("amount_out: {}", sell_price);
     msg!("amount_in: {}", amount_in);
 
+    let authority_bump = *ctx.bumps.get("collateral_account").unwrap();
+    let authority_seeds = &[
+        &ctx.accounts.mint_account.key().to_bytes(),
+        "Collateral".as_bytes(),
+        &[authority_bump],
+    ];
+    let signer_seeds = &[&authority_seeds[..]];
+
     system_program::transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             system_program::Transfer {
-                from: ctx.accounts.mint_account.to_account_info(),
+                from: ctx.accounts.collateral_account.to_account_info(),
                 to: ctx.accounts.seller.to_account_info(),
             },
+            signer_seeds,
         ),
         sell_price,
     )?;

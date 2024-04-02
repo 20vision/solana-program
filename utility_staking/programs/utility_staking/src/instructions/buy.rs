@@ -25,6 +25,13 @@ pub struct Buy<'info> {
     )]
     pub mint_account: Box<Account<'info, UtilityStakeMint>>,
 
+    #[account(
+        mut,
+        seeds = [mint_account.key().as_ref(), b"Collateral"],
+        bump
+    )]
+    pub collateral_account: AccountInfo<'info>,
+
     // Mint account address is a PDA
     #[account(
         init_if_needed,
@@ -126,7 +133,7 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
             ctx.accounts.system_program.to_account_info(),
             system_program::Transfer {
                 from: ctx.accounts.buyer.to_account_info(),
-                to: ctx.accounts.mint_account.to_account_info(),
+                to: ctx.accounts.collateral_account.to_account_info(),
             },
         ),
         amount_in,
