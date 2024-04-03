@@ -9,7 +9,6 @@ use fixed_sqrt::FixedSqrt;
 
 use crate::state::{
     UtilityStakeMint,
-    CollateralAccount,
 };
 
 
@@ -28,12 +27,11 @@ pub struct Initialize<'info> {
 
     #[account(
         init,
-        space = 8 + CollateralAccount::LEN,
         payer = payer,
         seeds = [mint_account.key().as_ref(), b"Collateral"],
         bump
     )]
-    pub collateral_account: Box<Account<'info, CollateralAccount>>,
+    pub collateral_account: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -47,7 +45,7 @@ pub fn initialize(
 
     // Min lamports to be rent exempt
     let min_mint_lamports = (Rent::get()?).minimum_balance(8 + UtilityStakeMint::LEN) as u64;
-    let min_collateral_lamports = (Rent::get()?).minimum_balance(8 + CollateralAccount::LEN) as u64;
+    let min_collateral_lamports = (Rent::get()?).minimum_balance(0) as u64;
 
     let min_lamports = min_mint_lamports.checked_add(min_collateral_lamports).unwrap();
 

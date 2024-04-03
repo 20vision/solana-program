@@ -6,7 +6,6 @@ use fixed::types::U64F64;
 use crate::state::{
     UtilityStakeAccount,
     UtilityStakeMint,
-    CollateralAccount,
 };
 
 use crate::errors::ContractError;
@@ -28,7 +27,7 @@ pub struct Sell<'info> {
         seeds = [mint_account.key().as_ref(), b"Collateral"],
         bump
     )]
-    pub collateral_account: Box<Account<'info, CollateralAccount>>,
+    pub collateral_account: SystemAccount<'info>,
 
     // Mint account address is a PDA
     #[account(
