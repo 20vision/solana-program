@@ -10,6 +10,13 @@ pub struct WithdrawalAccount {
 }
 
 #[account]
+pub struct CollateralAccount {}
+
+impl CollateralAccount {
+    pub const LEN: usize = 0;
+}
+
+#[account]
 #[derive(Default)]
 pub struct UtilityStakeMint {
     // stakes are 10^9 just like collateral lamports to SOL conversion
