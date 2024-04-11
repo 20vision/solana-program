@@ -26,8 +26,6 @@ pub struct Initialize<'info> {
     pub mint_account: Box<Account<'info, UtilityStakeMint>>,
 
     #[account(
-        init,
-        payer = payer,
         seeds = [mint_account.key().as_ref(), b"Collateral"],
         bump
     )]

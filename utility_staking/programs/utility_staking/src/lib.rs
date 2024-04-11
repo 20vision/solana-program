@@ -8,7 +8,7 @@ mod utils;
 mod errors;
 // mod errors;
 
-declare_id!("A7TtEscp2e3B2fPro7i4KqkPyfFDYfYAqetQ7jr88N9N");
+declare_id!("a1jHcczGwaeviqUkpcDeJAiaKJmgyAX1MNk6H4E25JS");
 
 #[program]
 pub mod utility_staking {
@@ -40,5 +40,17 @@ pub mod utility_staking {
 
     pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Result<()> {
         sell::sell(ctx, amount_in, min_output_amount)
+    }
+
+    pub fn initialize_withdrawal(ctx: Context<WithdrawalInit>, amount: u64, description: String) -> Result<()> {
+        withdrawal::initialize(ctx, amount, description)
+    }
+
+    pub fn abort_withdrawal(ctx: Context<WithdrawalClosure>) -> Result<()> {
+        withdrawal::abort(ctx)
+    }
+
+    pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
+        withdrawal::withdraw(ctx)
     }
 }
