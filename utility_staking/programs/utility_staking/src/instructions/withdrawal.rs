@@ -26,7 +26,7 @@ pub struct WithdrawalInit<'info> {
     pub mint_account: Box<Account<'info, UtilityStakeMint>>,
 
     #[account(
-        init_if_needed,
+        init,
         payer = admin,
         space = WithdrawalAccount::INIT_SPACE,
         seeds = [mint_account.key().as_ref(), b"Withdrawal"],
