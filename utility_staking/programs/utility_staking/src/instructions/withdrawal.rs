@@ -85,7 +85,9 @@ pub fn initialize(ctx: Context<WithdrawalInit>, amount: u64, description: String
     withdrawal.amount = amount;
 
     let clock = Clock::get()?;
+
     withdrawal.deadline = (clock.unix_timestamp as u64).checked_add(wait_time).unwrap();
+    withdrawal.deadline = clock.unix_timestamp as u64;
 
     withdrawal.description = description;
 
@@ -148,6 +150,13 @@ pub struct Withdrawal<'info> {
     )]
     pub withdrawal_account: Box<Account<'info, WithdrawalAccount>>,
 
+    #[account(
+        mut,
+        seeds = [mint_account.key().as_ref(), b"Collateral"],
+        bump
+    )]
+    pub collateral_account: SystemAccount<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -198,13 +207,22 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
     mint_account.stakes_burnt = mint_account.stakes_total.checked_sub(sqrt_token).unwrap();
     mint_account.collateral = mint_account.collateral.checked_sub(withdrawal.amount).unwrap();
 
+    let authority_bump = *ctx.bumps.get("collateral_account").unwrap();
+    let authority_seeds = &[
+        &ctx.accounts.mint_account.key().to_bytes(),
+        "Collateral".as_bytes(),
+        &[authority_bump],
+    ];
+    let signer_seeds = &[&authority_seeds[..]];
+
     system_program::transfer(
-        CpiContext::new(
+        CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             system_program::Transfer {
-                from: ctx.accounts.mint_account.to_account_info(),
+                from: ctx.accounts.collateral_account.to_account_info(),
                 to: ctx.accounts.admin.to_account_info(),
             },
+            signer_seeds,
         ),
         withdrawal.amount,
     )?;
