@@ -131,8 +131,7 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
 
     emit!(UtilityTradeEvent {
         stakes_total: mint_account.stakes_total,
-        collateral: mint_account.collateral,
-        label: "buy".to_string(),
+        collateral: mint_account.collateral
     });
 
     system_program::transfer(

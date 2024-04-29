@@ -89,8 +89,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     
     emit!(UtilityTradeEvent {
         stakes_total: mint_account.stakes_total,
-        collateral: mint_account.collateral,
-        label: "sell".to_string(),
+        collateral: mint_account.collateral
     });
     
     msg!("amount_out: {}", sell_price);

@@ -27,17 +27,13 @@ impl UtilityStakeMint {
 #[event]
 pub struct UtilityTradeEvent {
     pub stakes_total: u64,
-    pub collateral: u64,
-    #[index]
-    pub label: String,
+    pub collateral: u64
 }
 
 #[event]
 pub struct UtilityWithdrawEvent {
     pub stakes_burnt: u64,
-    pub collateral: u64,
-    #[index]
-    pub label: String,
+    pub collateral: u64
 }
 
 #[account]

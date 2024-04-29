@@ -210,8 +210,7 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
 
     emit!(UtilityWithdrawEvent {
         stakes_burnt: mint_account.stakes_burnt,
-        collateral: mint_account.collateral,
-        label: "withdraw".to_string(),
+        collateral: mint_account.collateral
     });
 
     let authority_bump = *ctx.bumps.get("collateral_account").unwrap();
