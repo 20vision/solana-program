@@ -24,6 +24,22 @@ impl UtilityStakeMint {
     pub const LEN: usize = 8 + 8 + 8 + 32 + 32;
 }
 
+#[event]
+pub struct UtilityTradeEvent {
+    pub stakes_total: u64,
+    pub collateral: u64,
+    #[index]
+    pub label: String,
+}
+
+#[event]
+pub struct UtilityWithdrawEvent {
+    pub stakes_burnt: u64,
+    pub collateral: u64,
+    #[index]
+    pub label: String,
+}
+
 #[account]
 #[derive(Default)]
 pub struct UtilityStakeAccount {

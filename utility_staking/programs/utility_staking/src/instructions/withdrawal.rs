@@ -8,7 +8,8 @@ use fixed::types::{
 };
 use crate::state::{
     UtilityStakeMint,
-    WithdrawalAccount
+    WithdrawalAccount,
+    UtilityWithdrawEvent
 };
 
 use crate::errors::ContractError;
@@ -206,6 +207,12 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
     // total - ...
     mint_account.stakes_burnt = mint_account.stakes_total.checked_sub(sqrt_token).unwrap();
     mint_account.collateral = mint_account.collateral.checked_sub(withdrawal.amount).unwrap();
+
+    emit!(UtilityWithdrawEvent {
+        stakes_burnt: mint_account.stakes_burnt,
+        collateral: mint_account.collateral,
+        label: "withdraw".to_string(),
+    });
 
     let authority_bump = *ctx.bumps.get("collateral_account").unwrap();
     let authority_seeds = &[

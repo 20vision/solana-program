@@ -6,6 +6,7 @@ use fixed::types::U64F64;
 use crate::state::{
     UtilityStakeAccount,
     UtilityStakeMint,
+    UtilityTradeEvent
 };
 
 use crate::errors::ContractError;
@@ -86,6 +87,11 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     mint_account.stakes_total = mint_account.stakes_total.checked_sub(amount_in).unwrap();
     mint_account.collateral = mint_account.collateral.checked_sub(sell_price).unwrap();
     
+    emit!(UtilityTradeEvent {
+        stakes_total: mint_account.stakes_total,
+        collateral: mint_account.collateral,
+        label: "sell".to_string(),
+    });
     
     msg!("amount_out: {}", sell_price);
     msg!("amount_in: {}", amount_in);
