@@ -206,6 +206,15 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
 
     // total - ...
     mint_account.stakes_burnt = mint_account.stakes_total.checked_sub(sqrt_token).unwrap();
+
+
+    let rest = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
+
+    if rest <= 0 {
+        return Err(anchor_lang::error!(ContractError::InsufficientStakeInContract));
+    }
+
+
     mint_account.collateral = mint_account.collateral.checked_sub(withdrawal.amount).unwrap();
 
     emit!(UtilityWithdrawEvent {

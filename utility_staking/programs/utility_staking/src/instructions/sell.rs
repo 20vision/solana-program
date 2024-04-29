@@ -48,7 +48,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     // Token are always saved as full token amount, true token amount = after burnt = only for selling/buying price.
     // Otherwise I would have to change balances realtime after withdrawal request = high compute
     if associated_utility_stake_account.amount < amount_in {
-        return Err(anchor_lang::error!(ContractError::InsufficientTokenBalance)); 
+        return Err(anchor_lang::error!(ContractError::InsufficientStakeBalance)); 
     }
 
     let mint_account = &mut ctx.accounts.mint_account;

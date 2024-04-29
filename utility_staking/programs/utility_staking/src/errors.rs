@@ -14,14 +14,14 @@ pub enum ContractError {
     #[msg("Admin signer did not sign the transaction.")]
     AdminSignerNotSigned,
 
-    #[msg("The price per token changed.")]
+    #[msg("The price per stake changed.")]
     PriceChanged,
 
-    #[msg("You don't own enough Token.")]
-    InsufficientTokenBalance,
+    #[msg("You don't own enough Stake.")]
+    InsufficientStakeBalance,
 
-    #[msg("Insufficient Token in Contract.")]
-    InsufficientTokenInContract,
+    #[msg("Insufficient Stake in Contract.")]
+    InsufficientStakeInContract,
 
     #[msg("Insufficient Collateral in Contract.")]
     InsufficientCollateralInContract,
