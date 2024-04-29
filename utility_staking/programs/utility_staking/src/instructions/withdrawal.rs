@@ -208,6 +208,7 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
     mint_account.stakes_burnt = mint_account.stakes_total.checked_sub(sqrt_token).unwrap();
 
 
+    // Check if after burn token still exist
     let rest = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
 
     if rest <= 0 {
