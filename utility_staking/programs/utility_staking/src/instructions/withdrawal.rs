@@ -204,6 +204,8 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
         .sqrt()
         .to_num::<u64>();
 
+    msg!("sqrt_token {}", sqrt_token);
+
     // total - ...
     mint_account.stakes_burnt = mint_account.stakes_total.checked_sub(sqrt_token).unwrap();
 
