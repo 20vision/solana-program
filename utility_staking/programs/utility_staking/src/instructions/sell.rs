@@ -65,7 +65,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     let adjusted_stakes_total = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
 
     if adjusted_my_token > adjusted_stakes_total {
-        return Err(anchor_lang::error!(ContractError::InsufficientCollateralInContract)); 
+        return Err(anchor_lang::error!(ContractError::InsufficientStakeInContract)); 
     }
 
     let adjusted_token = adjusted_stakes_total.checked_sub(adjusted_my_token).unwrap();
@@ -86,11 +86,6 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_sub(amount_in).unwrap();
     mint_account.stakes_total = mint_account.stakes_total.checked_sub(amount_in).unwrap();
     mint_account.collateral = mint_account.collateral.checked_sub(sell_price).unwrap();
-    
-    emit!(UtilityTradeEvent {
-        stakes_total: mint_account.stakes_total,
-        collateral: mint_account.collateral
-    });
     
     msg!("amount_out: {}", sell_price);
     msg!("amount_in: {}", amount_in);
@@ -114,6 +109,11 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
         ),
         sell_price,
     )?;
+
+    emit!(UtilityTradeEvent {
+        stakes_total: ctx.accounts.mint_account.stakes_total,
+        collateral: ctx.accounts.mint_account.collateral
+    });
 
     Ok(())
 }

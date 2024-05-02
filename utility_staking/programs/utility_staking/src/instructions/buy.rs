@@ -129,11 +129,6 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
     msg!("mint_account.stakes_total: {}", mint_account.stakes_total);
     msg!("mint_account.collateral: {}", mint_account.collateral);
 
-    emit!(UtilityTradeEvent {
-        stakes_total: mint_account.stakes_total,
-        collateral: mint_account.collateral
-    });
-
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -144,6 +139,11 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
         ),
         amount_in,
     )?;
+
+    emit!(UtilityTradeEvent {
+        stakes_total: ctx.accounts.mint_account.stakes_total,
+        collateral: ctx.accounts.mint_account.collateral
+    });
 
     Ok(())
 }

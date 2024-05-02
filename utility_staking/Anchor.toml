@@ -11,7 +11,7 @@ utility_staking = "cvTAff4vwpkfxANtHURR9TmBQ7N1U1k9YDFTVDyYuhE"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://solana-devnet.g.alchemy.com/v2/AnZfwL19YCoSf5VoZ0VXzbOG0T7vc3-V"
+cluster = "http://localhost:8899"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

@@ -209,7 +209,6 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
     // total - ...
     mint_account.stakes_burnt = mint_account.stakes_total.checked_sub(sqrt_token).unwrap();
 
-
     // Check if after burn token still exist
     let rest = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
 
@@ -219,11 +218,6 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
 
 
     mint_account.collateral = mint_account.collateral.checked_sub(withdrawal.amount).unwrap();
-
-    emit!(UtilityWithdrawEvent {
-        stakes_burnt: mint_account.stakes_burnt,
-        collateral: mint_account.collateral
-    });
 
     let authority_bump = *ctx.bumps.get("collateral_account").unwrap();
     let authority_seeds = &[
@@ -244,6 +238,13 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
         ),
         withdrawal.amount,
     )?;
+
+    msg!("stakes burnt {} | collateral {}", ctx.accounts.mint_account.stakes_burnt, ctx.accounts.mint_account.collateral);
+
+    emit!(UtilityWithdrawEvent {
+        stakes_burnt: ctx.accounts.mint_account.stakes_burnt,
+        collateral: ctx.accounts.mint_account.collateral
+    });
 
     Ok(())
 }
