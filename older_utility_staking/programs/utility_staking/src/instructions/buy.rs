@@ -67,38 +67,46 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
     // k_div = 1/k
     let k_div = 30000000000000000 as u128;
 
-    // Price formula's Integral: 
-    // k * x^2 = P(x)
-    // x = sqrt(P(x) / k)
-    // x = sqrt(EndCollateral / k)
+    // 1/k_div * x_2^2 - c
+    // p(x) = 1/k * x^2 - c
+    // p(x_1, x_2) = sqrt(c*k + k*y)
 
-    // x = sqrt(EndCollateral / k):
-    let existing_token_after_purchase =  U128F0::from_num(
-            (mint_account.collateral as u128).checked_add(amount_in as u128).unwrap()
-            .checked_mul(k_div).unwrap()
+    let total_token_after_purchase =  U128F0::from_num(
+            (mint_account.collateral as u128).checked_mul(k_div)
+            .unwrap()
+            .checked_add(
+                (amount_in as u128).checked_mul(k_div).unwrap()
+            ).unwrap()
         as u128)
         .sqrt()
         .to_num::<u64>();
 
-    // as collateral calculates for existing token, have to adjust to total
-    // total = existing + burnt
-    let total_token_after_purchase = existing_token_after_purchase.checked_add(mint_account.stakes_burnt).unwrap();
+    msg!("total_token_after_purchase: {}", total_token_after_purchase);
 
-    
-    let my_token = total_token_after_purchase.checked_sub(mint_account.stakes_total).unwrap();
+    // Scale down as function uses collateral = adjusted collateral
+    let adjusted_total = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
+    let token = total_token_after_purchase.checked_sub(adjusted_total).unwrap();
 
-    // @20vision review this part ! Burn adjustment or not and if, is that right ?!?!
-    // let my_burn_adjusted_token = (my_token as u128)
-    //     .checked_mul(mint_account.stakes_total as u128).unwrap()
-    //     .checked_div(mint_account.stakes_burnt as u128).unwrap();
+    msg!("token: {}, {}", token, mint_account.stakes_total);
 
-    msg!("new_total: {}, You are getting: {} stakes", total_token_after_purchase, my_burn_adjusted_token);
+    // Scale your token up as when you sell, you will sell your total amount, not adjusted. 
+    // Otherwise one would buy adjusted amount and sell another adjustment. The previous
+    // Withdrawals had nothing to do with this new buyer. We need to upscale his amount to adjust for previous withdrawals
+    let adjusted_token_1 = (token as u128).checked_mul(mint_account.stakes_total as u128).unwrap();
+    msg!("adjusted_token_1: {}", adjusted_token_1);
+    let adjusted_token_2 = (mint_account.stakes_total as u128).checked_sub(mint_account.stakes_burnt as u128).unwrap();
+    msg!("adjusted_token_2: {}", adjusted_token_2);
+    let adjusted_token = adjusted_token_1.checked_div(adjusted_token_2).unwrap() as u64;
 
-    if my_burn_adjusted_token < min_output_amount {
+    msg!("adjusted_token_3: {}", adjusted_token);
+
+    if adjusted_token < min_output_amount {
         return Err(anchor_lang::error!(ContractError::PriceChanged)); 
     }
 
-    mint_account.stakes_total = total_token_after_purchase as u64;
+    msg!("min_output_amount: {}", min_output_amount);
+
+    mint_account.stakes_total = adjusted_token.checked_add(mint_account.stakes_total).unwrap() as u64;
     mint_account.collateral = amount_in.checked_add(mint_account.collateral).unwrap() as u64;
 
     let associated_utility_stake_account = &mut ctx.accounts.associated_utility_stake_account;
@@ -112,24 +120,14 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
     }
 
     if associated_utility_stake_account.amount == u64::default(){
-        associated_utility_stake_account.amount = my_burn_adjusted_token;
+        associated_utility_stake_account.amount = adjusted_token;
     }else{
-        associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_add(my_burn_adjusted_token).unwrap() as u64;
+        associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_add(adjusted_token).unwrap() as u64;
     }
-
-    // To even out if there is a difference between saved value and
-    // actual lamports owned. Saving lamports instead of querying has
-    // the reason to ignore people from sending lamports to the collateral account
-    // to prevent manipulation. So ignore more but fill up if less in account.
-    let fill_up_collateral_account = amount_in;
-
-    // (after amount in)
-    let account_actual_balance = (ctx.accounts.collateral_account.lamports() as u64);
-    let account_actual_balance_amount_in_adjusted = account_actual_balance.checked_add(fill_up_collateral_account).unwrap();
-
-    if account_actual_balance_amount_in_adjusted < mint_account.collateral{
-        fill_up_collateral_account = mint_account.collateral.checked_sub(account_actual_balance).unwrap();
-    }
+    
+    msg!("adjusted_token: {}", associated_utility_stake_account.amount);
+    msg!("mint_account.stakes_total: {}", mint_account.stakes_total);
+    msg!("mint_account.collateral: {}", mint_account.collateral);
 
     system_program::transfer(
         CpiContext::new(
@@ -139,7 +137,7 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
                 to: ctx.accounts.collateral_account.to_account_info(),
             },
         ),
-        fill_up_collateral_account,
+        amount_in,
     )?;
 
     emit!(UtilityTradeEvent {

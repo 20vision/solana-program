@@ -88,8 +88,6 @@ pub fn initialize(ctx: Context<WithdrawalInit>, amount: u64, description: String
     let clock = Clock::get()?;
 
     withdrawal.deadline = (clock.unix_timestamp as u64).checked_add(wait_time).unwrap();
-    
-    // @20vision remove:
     withdrawal.deadline = clock.unix_timestamp as u64;
 
     withdrawal.description = description;
@@ -189,29 +187,35 @@ pub fn withdraw(ctx: Context<Withdrawal>) -> Result<()> {
         return Err(anchor_lang::error!(ContractError::TooLate));
     }
 
-    // Find out s_w:
-    // s = stakes; w = withdrawn; c = collateral
-    // s_total - s_previous_w - s_w = c - c_w
-    // express as stakes not collateral: c - c_w = k * x^2 ; x = sqrt((c - c_w) / k)
-    // s_total - s_previous_w - s_w = sqrt((c - c_w) / k)
-    // s_w = (s_total - s_previous_w) - sqrt((c - c_w) / k)
+    // collateral = k * x^2
 
-    // @20vision change to the above formula. Blow has not been checked
+    // sqrt(collateral / k) = total - burnt
+
+    // total_token - sqrt(collateral / k) = burnt
 
     // k_div = 1/k
     let k_div = 30000000000000000 as u128;
 
-    let adjusted_stakes_total = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
+    // collateral / k
+    let token_product = (mint_account.collateral as u128).checked_mul(k_div).unwrap() as u128;
 
-    let collateral_after_withdraw = mint_account.collateral.checked_sub(withdrawal.amount).unwrap();
+    // sqrt(collateral / k)
+    let sqrt_token = U128F0::from_num(token_product as u128)
+        .sqrt()
+        .to_num::<u64>();
 
-    let stakes_rest = U128F0::from_num(
-        (collateral_after_withdraw as u128).checked_mul(k_div).unwrap()
-    ).sqrt().to_num::<u64>();
+    msg!("sqrt_token {}", sqrt_token);
 
-    let stakes_withdrawn = adjusted_stakes_total.checked_sub(stakes_rest).unwrap();
+    // total - ...
+    mint_account.stakes_burnt = mint_account.stakes_total.checked_sub(sqrt_token).unwrap();
 
-    mint_account.stakes_burnt = mint_account.stakes_burnt.checked_add(stakes_withdrawn).unwrap();
+    // Check if after burn token still exist
+    let rest = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
+
+    if rest <= 0 {
+        return Err(anchor_lang::error!(ContractError::InsufficientStakeInContract));
+    }
+
 
     mint_account.collateral = mint_account.collateral.checked_sub(withdrawal.amount).unwrap();
 

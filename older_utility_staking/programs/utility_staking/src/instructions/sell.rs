@@ -58,40 +58,37 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
     // k_div = 1/k
     let k_div = 30000000000000000 as u128;
 
-    // k * x^2 = collateral
-    // x = total - burnt - burn_adjusted_amount_in
+    // sell = collateral - k * x_diff^2
 
-    // @20vision review this part ! Burn adjustment or not and if, is that right ?!?!
-    // let burn_adjusted_amount_in = (amount_in as u128).checked_sub(
-    //     (amount_in as u128)
-    //     .checked_mul(mint_account.stakes_burnt as u128).unwrap()
-    //     .checked_div(mint_account.stakes_total as u128).unwrap()
-    // ) as u128;
+    let adjusted_my_token = amount_in.checked_sub((amount_in.checked_mul(mint_account.stakes_burnt).unwrap()).checked_div(mint_account.stakes_total).unwrap()).unwrap();
 
-    let token_in_pool_after_sell =  mint_account.stakes_total
-        .checked_sub(mint_account.stakes_burnt).unwrap()
-        .checked_sub(burn_adjusted_amount_in as u64).unwrap() as u64;
+    let adjusted_stakes_total = mint_account.stakes_total.checked_sub(mint_account.stakes_burnt).unwrap();
 
-    let token_in_pool_after_sell_squared = (token_in_pool_after_sell as u128)
-        .checked_mul(token_in_pool_after_sell as u128)
-        .unwrap() as u128;
+    if adjusted_my_token > adjusted_stakes_total {
+        return Err(anchor_lang::error!(ContractError::InsufficientStakeInContract)); 
+    }
 
-    let collateral_after_sell = token_in_pool_after_sell_squared
-        .checked_div(k_div)
-        .unwrap() as u64;
+    let adjusted_token = adjusted_stakes_total.checked_sub(adjusted_my_token).unwrap();
 
-    // collateral - collateral_after_sell = my_collateral
-    let my_collateral = mint_account.collateral.checked_sub(collateral_after_sell).unwrap();
+    let total_collater_after = ((adjusted_token as u128).checked_mul(adjusted_token as u128).unwrap()).checked_div(k_div).unwrap();
 
-    if my_collateral < min_output_amount {
+    let sell_price = mint_account.collateral.checked_sub(total_collater_after as u64).unwrap();
+
+
+    if sell_price < min_output_amount {
         return Err(anchor_lang::error!(ContractError::PriceChanged)); 
     }
 
-    if mint_account.collateral < my_collateral {
+    if mint_account.collateral < sell_price {
         return Err(anchor_lang::error!(ContractError::InsufficientCollateralInContract)); 
     }
 
-    associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_sub(burn_adjusted_amount_in).unwrap();
+    associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_sub(amount_in).unwrap();
+    mint_account.stakes_total = mint_account.stakes_total.checked_sub(amount_in).unwrap();
+    mint_account.collateral = mint_account.collateral.checked_sub(sell_price).unwrap();
+    
+    msg!("amount_out: {}", sell_price);
+    msg!("amount_in: {}", amount_in);
 
     let authority_bump = *ctx.bumps.get("collateral_account").unwrap();
     let authority_seeds = &[
@@ -110,7 +107,7 @@ pub fn sell(ctx: Context<Sell>, amount_in: u64, min_output_amount: u64) -> Resul
             },
             signer_seeds,
         ),
-        my_collateral,
+        sell_price,
     )?;
 
     emit!(UtilityTradeEvent {
