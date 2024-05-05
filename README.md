@@ -1,1 +1,1 @@
-![alt text](https://github.com/20vision/solana-program/tree/master/utility_staking/WithdrawalExplained.jpg?raw=true)
+![alt text](https://github.com/20vision/solana-program/blob/master/WithdrawalExplained.jpg?raw=true)
