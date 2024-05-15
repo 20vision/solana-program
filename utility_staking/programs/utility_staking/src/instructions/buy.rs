@@ -9,6 +9,11 @@ use crate::state::{
     UtilityTradeEvent
 };
 
+use crate::utils::{
+    withdrawal_adjustment_downscale,
+    withdrawal_adjustment_upscale
+}
+
 use crate::errors::ContractError;
 
 use crate::id;
@@ -46,7 +51,7 @@ pub struct Buy<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<()> {
+pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u128) -> Result<()> {
 
     let mint_account = &mut ctx.accounts.mint_account;
 
@@ -80,21 +85,18 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
         .sqrt()
         .to_num::<u64>();
 
+    let upscaled_existing_token_after_purchase = withdrawal_adjustment_upscale(existing_token_after_purchase, mint_account);
+
     // as collateral calculates for existing token, have to adjust to total
     // total = existing + burnt
-    let total_token_after_purchase = existing_token_after_purchase.checked_add(mint_account.stakes_burnt).unwrap();
+    let total_token_after_purchase = upscaled_existing_token_after_purchase.checked_add(mint_account.stakes_burnt).unwrap();
 
     
     let my_token = total_token_after_purchase.checked_sub(mint_account.stakes_total).unwrap();
 
-    // @20vision review this part ! Burn adjustment or not and if, is that right ?!?!
-    // let my_burn_adjusted_token = (my_token as u128)
-    //     .checked_mul(mint_account.stakes_total as u128).unwrap()
-    //     .checked_div(mint_account.stakes_burnt as u128).unwrap();
+    msg!("new_total: {}, You are getting: {} stakes", total_token_after_purchase, my_token);
 
-    msg!("new_total: {}, You are getting: {} stakes", total_token_after_purchase, my_burn_adjusted_token);
-
-    if my_burn_adjusted_token < min_output_amount {
+    if my_token < min_output_amount {
         return Err(anchor_lang::error!(ContractError::PriceChanged)); 
     }
 
@@ -112,7 +114,7 @@ pub fn buy(ctx: Context<Buy>, amount_in: u64, min_output_amount: u64) -> Result<
     }
 
     if associated_utility_stake_account.amount == u64::default(){
-        associated_utility_stake_account.amount = my_burn_adjusted_token;
+        associated_utility_stake_account.amount = my_token;
     }else{
         associated_utility_stake_account.amount = associated_utility_stake_account.amount.checked_add(my_burn_adjusted_token).unwrap() as u64;
     }

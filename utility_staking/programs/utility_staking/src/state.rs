@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)] // automatically calculate the space required for the struct
 pub struct WithdrawalAccount {
-    pub amount: u64,
+    pub amount: u128,
     pub deadline: u64,
     #[max_len(200)] // set a max length for the string
     pub description: String,
@@ -42,7 +42,8 @@ pub struct UtilityStakeAccount {
     /// Account that has a bunch of sub accounts that have to be signers for "constraint functions"
     pub mint: Pubkey,
     pub hodler: Pubkey,
-    pub amount: u64
+    pub amount: u64,
+    pub withdrawal_adjusted_amount: u128
 }
 
 impl UtilityStakeAccount {
